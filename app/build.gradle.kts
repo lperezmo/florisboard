@@ -15,6 +15,7 @@
  */
 
 import java.io.ByteArrayOutputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.agp.application)
@@ -23,6 +24,12 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.mikepenz.aboutlibraries)
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 val projectMinSdk: String by project
@@ -72,6 +79,7 @@ android {
         buildConfigField("String", "BUILD_COMMIT_HASH", "\"${getGitCommitHash()}\"")
         buildConfigField("String", "FLADDONS_API_VERSION", "\"v~draft2\"")
         buildConfigField("String", "FLADDONS_STORE_URL", "\"beta.addons.florisboard.org\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties.getProperty("OPENAI_API_KEY", "")}\"")
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
@@ -202,6 +210,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.mikepenz.aboutlibraries.core)
     implementation(libs.mikepenz.aboutlibraries.compose)
+    implementation(libs.okhttp.core)
+    implementation(libs.okhttp.loggingInterceptor)
     implementation(libs.patrickgold.compose.tooltip)
     implementation(libs.patrickgold.jetpref.datastore.model)
     implementation(libs.patrickgold.jetpref.datastore.ui)
@@ -219,12 +229,12 @@ dependencies {
 }
 
 fun getGitCommitHash(short: Boolean = false): String {
-    if (!File(".git").exists()) {
+    if (!rootProject.file(".git").exists()) {
         return "null"
     }
 
     val stdout = ByteArrayOutputStream()
-    exec {
+    project.exec {
         if (short) {
             commandLine("git", "rev-parse", "--short", "HEAD")
         } else {

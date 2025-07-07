@@ -3,6 +3,9 @@
 *.aab
 *.ap_
 
+# Internal notes
+README-FOR-ADDING-OPENAI.md
+
 # dotenv
 .env
 

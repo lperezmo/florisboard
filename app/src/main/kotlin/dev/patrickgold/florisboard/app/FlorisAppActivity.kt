@@ -18,10 +18,12 @@ package dev.patrickgold.florisboard.app
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.imePadding
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
@@ -80,6 +83,14 @@ class FlorisAppActivity : ComponentActivity() {
     private var resourcesContext by mutableStateOf(this as Context)
     private var intentToBeHandled by mutableStateOf<Intent?>(null)
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (!isGranted) {
+            // TODO: Handle permission denial, maybe show a toast.
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen should be installed before calling super.onCreate()
         installSplashScreen().apply {
@@ -87,6 +98,8 @@ class FlorisAppActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        requestAudioPermission()
 
         prefs.other.settingsTheme.observe(this) {
             appTheme = it
@@ -212,6 +225,20 @@ class FlorisAppActivity : ComponentActivity() {
                 }
             }
             intentToBeHandled = null
+        }
+    }
+
+    private fun requestAudioPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission is already granted
+            }
+            else -> {
+                requestPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ package dev.patrickgold.florisboard.ime.smartbar.quickaction
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.R
 import dev.patrickgold.florisboard.editorInstance
 import dev.patrickgold.florisboard.ime.keyboard.ComputingEvaluator
@@ -28,6 +29,7 @@ import dev.patrickgold.florisboard.keyboardManager
 import dev.patrickgold.florisboard.lib.compose.stringRes
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.florisboard.lib.android.showShortToast
 
 @Serializable
 sealed class QuickAction {
@@ -66,6 +68,26 @@ sealed class QuickAction {
         override fun onPointerUp(context: Context) {
             val editorInstance by context.editorInstance()
             editorInstance.commitText(data)
+        }
+    }
+
+    @Serializable
+    @SerialName("voice_input")
+    object VoiceInput : QuickAction() {
+        override fun onPointerUp(context: Context) {
+            val florisImeService = context as? FlorisImeService ?: return
+            if (florisImeService.whisperManager.isRecording.value) {
+                florisImeService.whisperManager.stopRecording(
+                    onTranscriptionResult = { text ->
+                        florisImeService.currentInputConnection?.commitText(text, 1)
+                    },
+                    onTranscriptionError = { error ->
+                        context.showShortToast(error)
+                    }
+                )
+            } else {
+                florisImeService.whisperManager.startRecording()
+            }
         }
     }
 }
@@ -108,6 +130,7 @@ fun QuickAction.computeDisplayName(evaluator: ComputingEvaluator): String {
             else -> R.string.general__invalid_fatal
         })
         is QuickAction.InsertText -> data
+        is QuickAction.VoiceInput -> stringRes(R.string.quick_action__voice_input)
     }
 }
 
@@ -145,5 +168,6 @@ fun QuickAction.computeTooltip(evaluator: ComputingEvaluator): String {
             else -> R.string.general__invalid_fatal
         })
         is QuickAction.InsertText -> "Insert text '$data'"
+        is QuickAction.VoiceInput -> stringRes(R.string.quick_action__voice_input__tooltip)
     }
 }

@@ -35,6 +35,7 @@ val QuickActionJsonConfig = Json(DefaultJsonConfig) {
         polymorphic(QuickAction::class) {
             subclass(QuickAction.InsertKey::class, QuickAction.InsertKey.serializer())
             subclass(QuickAction.InsertText::class, QuickAction.InsertText.serializer())
+            subclass(QuickAction.VoiceInput::class, QuickAction.VoiceInput.serializer())
             defaultDeserializer { QuickAction.InsertKey.serializer() }
         }
     }
@@ -66,7 +67,7 @@ data class QuickActionArrangement(
 
     companion object {
         val Default = QuickActionArrangement(
-            stickyAction = QuickAction.InsertKey(TextKeyData.VOICE_INPUT),
+            stickyAction = QuickAction.VoiceInput,
             dynamicActions = listOf(
                 QuickAction.InsertKey(TextKeyData.UNDO),
                 QuickAction.InsertKey(TextKeyData.REDO),

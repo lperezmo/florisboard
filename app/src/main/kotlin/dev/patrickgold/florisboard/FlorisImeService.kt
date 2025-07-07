@@ -91,6 +91,7 @@ import dev.patrickgold.florisboard.ime.landscapeinput.LandscapeInputUiMode
 import dev.patrickgold.florisboard.ime.lifecycle.LifecycleInputMethodService
 import dev.patrickgold.florisboard.ime.media.MediaInputLayout
 import dev.patrickgold.florisboard.ime.nlp.NlpInlineAutofill
+import dev.patrickgold.florisboard.ime.nlp.WhisperManager
 import dev.patrickgold.florisboard.ime.onehanded.OneHandedMode
 import dev.patrickgold.florisboard.ime.onehanded.OneHandedPanel
 import dev.patrickgold.florisboard.ime.sheet.BottomSheetHostUi
@@ -258,6 +259,8 @@ class FlorisImeService : LifecycleInputMethodService() {
     private val subtypeManager by subtypeManager()
     private val themeManager by themeManager()
 
+    internal lateinit var whisperManager: WhisperManager
+
     private val activeState get() = keyboardManager.activeState
     private var inputWindowView by mutableStateOf<View?>(null)
     private var inputViewSize by mutableStateOf(IntSize.Zero)
@@ -276,6 +279,7 @@ class FlorisImeService : LifecycleInputMethodService() {
     override fun onCreate() {
         super.onCreate()
         FlorisImeServiceReference = WeakReference(this)
+        whisperManager = WhisperManager(this)
         WindowCompat.setDecorFitsSystemWindows(window.window!!, false)
         subtypeManager.activeSubtypeFlow.collectLatestIn(lifecycleScope) { subtype ->
             val config = Configuration(resources.configuration)

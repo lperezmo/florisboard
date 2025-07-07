@@ -1,3 +1,8 @@
+<div style="background-color: #87CEEB; color: #000000; padding: 1rem; border-radius: 0.5rem;">
+  <h1 align="center">FlorisBoard Fork with OpenAI Transcription</h1>
+  <p align="center">This is a fork of the amazing FlorisBoard project, with the addition of a simple and powerful voice-to-text transcription feature using the OpenAI API.</p>
+</div>
+
 <img align="left" width="80" height="80"
 src=".github/repo_icon.png" alt="App icon">
 

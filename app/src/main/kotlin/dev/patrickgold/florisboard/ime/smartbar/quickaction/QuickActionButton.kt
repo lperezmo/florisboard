@@ -39,6 +39,7 @@ import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.ime.keyboard.ComputingEvaluator
 import dev.patrickgold.florisboard.ime.keyboard.computeImageVector
 import dev.patrickgold.florisboard.ime.keyboard.computeLabel
+import dev.patrickgold.florisboard.ime.text.key.KeyCode
 import dev.patrickgold.florisboard.ime.text.keyboard.TextKeyData
 import dev.patrickgold.florisboard.ime.theme.FlorisImeUi
 import org.florisboard.lib.snygg.SnyggSelector
@@ -151,6 +152,18 @@ fun QuickActionButton(
                             selector = selector,
                             text = action.data.firstOrNull().toString().ifBlank { "?" },
                         )
+                    }
+                    is QuickAction.VoiceInput -> {
+                        val imageVector = evaluator.computeImageVector(TextKeyData(code = KeyCode.VOICE_INPUT))
+                        if (imageVector != null) {
+                            SnyggBox(
+                                elementName = "$elementName-icon",
+                                attributes = attributes,
+                                selector = selector,
+                            ) {
+                                SnyggIcon(imageVector = imageVector)
+                            }
+                        }
                     }
                 }
 
