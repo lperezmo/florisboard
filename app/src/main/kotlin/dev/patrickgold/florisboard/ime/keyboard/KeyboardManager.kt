@@ -44,6 +44,7 @@ import dev.patrickgold.florisboard.ime.input.InputEventDispatcher
 import dev.patrickgold.florisboard.ime.input.InputKeyEventReceiver
 import dev.patrickgold.florisboard.ime.input.InputShiftState
 import dev.patrickgold.florisboard.ime.nlp.ClipboardSuggestionCandidate
+import dev.patrickgold.florisboard.ime.nlp.OpenAiManager
 import dev.patrickgold.florisboard.ime.nlp.PunctuationRule
 import dev.patrickgold.florisboard.ime.nlp.SuggestionCandidate
 import dev.patrickgold.florisboard.ime.onehanded.OneHandedMode
@@ -72,6 +73,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.florisboard.lib.android.AndroidKeyguardManager
 import org.florisboard.lib.android.showLongToast
 import org.florisboard.lib.android.showShortToast
@@ -89,6 +91,7 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
     private val editorInstance by context.editorInstance()
     private val extensionManager by context.extensionManager()
     private val nlpManager by context.nlpManager()
+    private val openAiManager = OpenAiManager(context)
     private val subtypeManager by context.subtypeManager()
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -604,10 +607,21 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
      * Handles a [KeyCode.TOGGLE_AUTOCORRECT] event.
      */
     private fun handleToggleAutocorrect() {
-        lastToastReference.get()?.cancel()
-        lastToastReference = WeakReference(
-            appContext.showLongToast("Autocorrect toggle is a placeholder and not yet implemented")
-        )
+        scope.launch {
+            val text = editorInstance.activeContent.text.toString()
+            if (text.isNotBlank()) {
+                val correctedText = openAiManager.autocorrectText(text)
+                withContext(Dispatchers.Main) {
+                    if (correctedText != null) {
+                        editorInstance.setSelection(0, text.length)
+                        editorInstance.commitText(correctedText)
+                        appContext.showShortToast("Autocorrected")
+                    } else {
+                        appContext.showShortToast("Autocorrect failed")
+                    }
+                }
+            }
+        }
     }
 
     /**
