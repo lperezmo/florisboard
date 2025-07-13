@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2021-2025 The FlorisBoard Contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package dev.patrickgold.florisboard.ime.nlp
 
 import android.content.Context
@@ -28,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -58,12 +43,34 @@ class WhisperManager(private val context: Context) {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
+    // Custom interceptor that redacts sensitive headers
+    private class HeaderRedactingInterceptor : Interceptor {
+        override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
+            val request = chain.request()
+            val redactedRequest = request.newBuilder()
+                .removeHeader("Authorization")
+                .addHeader("Authorization", "Bearer [REDACTED]")
+                .build()
+            
+            // Log the redacted request
+            println("API Request: ${redactedRequest.method} ${redactedRequest.url}")
+            
+            // Execute with the original request (with real auth)
+            return chain.proceed(request)
+        }
+    }
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(
             HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                // Change to HEADERS to avoid logging body (which includes file content)
+                // or use BASIC for minimal logging
+                level = HttpLoggingInterceptor.Level.BASIC
+                
+                // Custom redactor for sensitive headers
+                redactHeader("Authorization")
             }
         )
         .build()
@@ -114,7 +121,10 @@ class WhisperManager(private val context: Context) {
     }
 
     private suspend fun sendToWhisperAPI(audioFile: File): String {
-        val body = MultipartBody.Builder()
+        // Debug logging to verify config values
+        println("Whisper Config - Language: ${WhisperConfig.language}, Prompt: ${WhisperConfig.prompt}")
+        
+        val bodyBuilder = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart(
                 "file",
@@ -123,11 +133,20 @@ class WhisperManager(private val context: Context) {
             )
             .addFormDataPart("model", WhisperConfig.MODEL)
             .addFormDataPart("response_format", "text")
-            .apply {
-                WhisperConfig.language?.let { addFormDataPart("language", it) }
-                WhisperConfig.prompt?.let { addFormDataPart("prompt", it) }
-            }
-            .build()
+        
+        // Add language if not null
+        WhisperConfig.language?.let { lang ->
+            println("Adding language to request: $lang")
+            bodyBuilder.addFormDataPart("language", lang)
+        }
+        
+        // Add prompt if not null
+        WhisperConfig.prompt?.let { promptText ->
+            println("Adding prompt to request: $promptText")
+            bodyBuilder.addFormDataPart("prompt", promptText)
+        }
+        
+        val body = bodyBuilder.build()
 
         val request = Request.Builder()
             .url("https://api.openai.com/v1/audio/transcriptions")

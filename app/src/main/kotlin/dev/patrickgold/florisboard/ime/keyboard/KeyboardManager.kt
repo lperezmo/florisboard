@@ -606,16 +606,45 @@ class KeyboardManager(context: Context) : InputKeyEventReceiver {
     /**
      * Handles a [KeyCode.TOGGLE_AUTOCORRECT] event.
      */
+    // private fun handleToggleAutocorrect() {
+    //     scope.launch {
+    //         val text = editorInstance.activeContent.text.toString()
+    //         if (text.isNotBlank()) {
+    //             val correctedText = openAiManager.autocorrectText(text)
+    //             withContext(Dispatchers.Main) {
+    //                 if (correctedText != null) {
+    //                     editorInstance.setSelection(0, text.length)
+    //                     editorInstance.commitText(correctedText)
+    //                     appContext.showShortToast("Autocorrected")
+    //                 } else {
+    //                     appContext.showShortToast("Autocorrect failed")
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     private fun handleToggleAutocorrect() {
         scope.launch {
             val text = editorInstance.activeContent.text.toString()
             if (text.isNotBlank()) {
-                val correctedText = openAiManager.autocorrectText(text)
+                // Call the OpenAI API in IO context
+                val correctedText = withContext(Dispatchers.IO) {
+                    openAiManager.autocorrectText(text)
+                }
+                
+                // Switch to Main thread for UI updates
                 withContext(Dispatchers.Main) {
                     if (correctedText != null) {
                         editorInstance.setSelection(0, text.length)
-                        editorInstance.commitText(correctedText)
-                        appContext.showShortToast("Autocorrected")
+                        // Now access the text property from AutocorrectResult
+                        editorInstance.commitText(correctedText.text)
+                        
+                        // Show appropriate toast based on whether web search was used
+                        if (correctedText.usedWebSearch && correctedText.sources.isNotEmpty()) {
+                            appContext.showShortToast("Autocorrected with web search")
+                        } else {
+                            appContext.showShortToast("Autocorrected")
+                        }
                     } else {
                         appContext.showShortToast("Autocorrect failed")
                     }
