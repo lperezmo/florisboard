@@ -41,8 +41,8 @@ import java.util.concurrent.TimeUnit
 object WhisperConfig {
     const val API_KEY = BuildConfig.OPENAI_API_KEY
     const val MODEL = "gpt-4o-transcribe"
-    var language: String? = null
-    var prompt: String? = null
+    var language: String? = "en"
+    var prompt: String? = "These recordings are mostly in english, may contain or be in spanish. They will never be in any other language, so don't return anything other than english or spanish."
 }
 
 class WhisperManager(private val context: Context) {
